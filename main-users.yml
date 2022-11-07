@@ -1,0 +1,7 @@
+---
+# tasks file for users
+- name: Add user to remote hosts
+  user: name=user1 groups=sudo shell=/bin/bash
+
+- name: Add SSH keys to remote hosts
+  authorized_key: user=user1 key="{{ lookup('file', "/home/anfisab/.ssh/id_rsa.pub") }}"
