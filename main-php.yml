@@ -1,0 +1,30 @@
+---
+# tasks file for php
+- name: Install php-fpm
+  apt:
+    name: php-fpm
+    state: latest
+- name: Allow all access to tcp port 9000
+  ufw:
+    rule: allow
+    port: '9000'
+    proto: tcp
+
+
+- name: "/etc/php/8.1/fpm/pool.d/www.conf"
+  lineinfile:
+    path: /etc/php/8.1/fpm/pool.d/www.conf
+    regexp: 'listen = /run/php/php8.1-fpm.sock'
+    line: ';listen = /run/php/php8.1-fpm.sock'
+    state: present
+
+- name: "/etc/php/8.1/fpm/pool.d/www.conf"
+  lineinfile:
+    path: /etc/php/8.1/fpm/pool.d/www.conf
+    line: 'listen = 127.0.0.1:9000'
+    state: present
+
+- name: Restart php
+  service:
+    name: php8.1-fpm
+    state: restarted
