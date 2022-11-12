@@ -1,0 +1,128 @@
+1) cd /etc/ansible/roles/
+ansible-galaxy init dnsmasq
+sudo vi /etc/ansible/roles/dnsmasq/tasks/main.yml
+---
+# tasks file for dnsmasq
+- name: systemd-resolved
+systemd:
+name: systemd-resolved
+state: stopped
+
+- name: Remove /etc/resolv.conf
+command: rm -rf /etc/resolv.conf
+- name: Create /etc/resolv
+command: touch /etc/resolv.conf
+- name: /etc/resolv.conf
+lineinfile:
+dest: /etc/resolv.conf
+line: "{{ item.line }}"
+loop:
+- { line: 'nameserver 8.8.8.8' }
+- name: Install dnsmasq
+apt:
+name: dnsmasq
+state: latest
+- name: /etc/dnsmasq.conf
+template:
+src: /etc/dnsmasq.conf
+dest: /etc/dnsmasq.conf
+- name: /etc/resolv.conf
+lineinfile:
+dest: /etc/resolv.conf
+line: "{{ item.line }}"
+loop:
+- { line: 'nameserver 127.0.0.1' }
+- name: Restart dnsmasq
+service:
+name: dnsmasq
+state: restarted
+
+sudo vi /etc/ansible/playbooks/dnsmasq.yml
+---
+- hosts: all
+gather_facts: no
+become: yes
+roles:
+- dnsmasq
+
+2) ---
+- hosts: all
+become: yes
+tasks:
+
+- name: Add a group called superusers
+group:
+name: superusers
+state: present
+
+- name: Add user to remote hosts
+user: name=user2 groups=superusers shell=/bin/bash password=$6$xipSt.6D5L2Ml/v3$If0beFBZK2qBQEhTuSX8p0CPb5ztjFKlLfBpDwBfI6Md2s59G6ZQf.ye9Bud6puHLUQZC8Tz9ZrFdyn65p.oq0
+- name: Add user to remote hosts
+user: name=user3 groups=superusers shell=/bin/bash password=$6$xipSt.6D5L2Ml/v3$If0beFBZK2qBQEhTuSX8p0CPb5ztjFKlLfBpDwBfI6Md2s59G6ZQf.ye9Bud6puHLUQZC8Tz9ZrFdyn65p.oq0
+
+- name: "/etc/sudoers"
+lineinfile:
+path: /etc/sudoers
+state: present
+line: '%superusers ALL=(ALL:ALL) ALL'
+validate: '/usr/sbin/visudo -cf %s'
+
+3) cd /etc/ansible/roles/
+ansible-galaxy init nginx
+sudo vi /etc/ansible/roles/nginx/tasks/main.yml
+---
+# tasks file for nginx
+- name: Install Nginx
+apt:
+name: nginx
+state: latest
+
+- name: Install php-fpm
+apt:
+name: php-fpm
+state: latest
+
+- name: Apply Nginx template
+template:
+src: /etc/nginx/sites-available/default
+dest: /etc/nginx/sites-available/default
+notify: Restart Nginx
+
+- name: Enable new site
+file:
+src: /etc/nginx/sites-available/default
+dest: /etc/nginx/sites-enabled/default
+state: link
+notify: Restart Nginx
+
+- name: сreate directory
+file:
+path=/opt/nginx/ansible
+state=directory
+
+- name: Copy info.php
+copy:
+src: /var/www/html/info.php
+dest: /opt/nginx/ansible/info.php
+notify: Restart Nginx
+
+- name: Allow all access to tcp port 80
+ufw:
+rule: allow
+port: '80'
+proto: tcp
+notify: Restart Nginx
+
+handlers:
+- name: Restart Nginx
+service:
+name: nginx
+state: restarted
+
+sudo vi /etc/ansible/playbooks/nginx.yml
+---
+- hosts: all
+gather_facts: no
+become: yes
+roles:
+- nginx
